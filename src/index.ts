@@ -24,7 +24,7 @@ var io = socketio(httpServer);
 var port = process.env.PORT || 3003;
 
 app.get('/', function(req, res) {
-  res.sendFile(__dirname + '/index.html');
+  res.status(200).send('woop');
 });
 
 app.post('/send-message', (req, res) => {
