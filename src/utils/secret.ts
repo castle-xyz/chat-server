@@ -9,13 +9,13 @@ if (process.env.SECRET) {
   } catch (e) {
     try {
       // If you put a symlink in the server/ directory
-      let path = '../../ghost-secret';
+      let path = '../ghost-secret';
       secret = require(path);
     } catch (e) {
       try {
         // If you just cloned ghost-secret into a peer directory to ghost-server
         // Typescript tries to build ghost-secret otherwise
-        let path = '../../../../ghost-secret';
+        let path = '../../../ghost-secret';
         secret = require(path);
       } catch (e2) {
         console.error(
@@ -28,7 +28,7 @@ if (process.env.SECRET) {
 }
 
 if (process.env.NODE_ENV == 'local') {
-  secret.newPostgres = {
+  secret.postgres = {
     host: '127.0.0.1',
     user: 'castle',
     password: 'castle',

@@ -11,6 +11,7 @@ import secret from './utils/secret';
 
 const API_HOST =
   process.env.NODE_ENV == 'local' ? 'http://localhost:1380' : 'https://api.castle.games';
+const API_HOST_2 = 'https://castle-app-server.herokuapp.com';
 
 const app = express();
 
@@ -132,16 +133,22 @@ app.post('/send-user-message', (req, res) => {
 });
 
 async function userIdForToken(token) {
+  // check both servers until migration is complete
   try {
     let response = await axios.get(API_HOST + `/api/chat/get-user?token=${token}`);
     if (response.status == 200 && response.data && response.data.user_id) {
       return `${response.data.user_id}`;
-    } else {
-      return null;
     }
-  } catch (e) {
-    return null;
-  }
+  } catch (e) {}
+
+  try {
+    let response = await axios.get(API_HOST_2 + `/api/chat/get-user?token=${token}`);
+    if (response.status == 200 && response.data && response.data.user_id) {
+      return `${response.data.user_id}`;
+    }
+  } catch (e) {}
+
+  return null;
 }
 
 let connections = {};
