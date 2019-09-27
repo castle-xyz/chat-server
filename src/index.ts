@@ -58,6 +58,35 @@ app.post('/send-message', (req, res) => {
   }
 });
 
+app.post('/send-global-update', (req, res) => {
+  try {
+    if (req.body.secretKey !== secret.chat.secretKey) {
+      throw new Error('incorrect secret key');
+    }
+
+    if (!req.body.type) {
+      throw new Error('no type');
+    }
+
+    if (!req.body.body) {
+      throw new Error('no body');
+    }
+
+    io.emit(
+      'update',
+      JSON.stringify({
+        type: req.body.type,
+        body: req.body.body,
+      })
+    );
+
+    res.status(200).send('success');
+  } catch (e) {
+    console.log(e);
+    res.status(401).send('failure ' + e.toString());
+  }
+});
+
 app.post('/get-presence', (req, res) => {
   try {
     if (req.body.secretKey !== secret.chat.secretKey) {
@@ -168,7 +197,7 @@ function getOnlineUsers() {
   };
 }
 
-function onlineCountForChannel(channel) {
+function onlineUserIdsForChannel(channel) {
   let connectionsForChannel = channels[channel];
 
   let userIdsSet = {};
@@ -177,7 +206,7 @@ function onlineCountForChannel(channel) {
     userIdsSet[connectionsForChannel[connectionIds[i]]] = true;
   }
 
-  return _.keys(userIdsSet).length;
+  return _.keys(userIdsSet);
 }
 
 function channelsForSocketId(socketId) {
@@ -189,26 +218,29 @@ function sendPresenceEvent() {
   let onlineUserIds = onlineUsersResult.userIds;
   let onlineConnectionIds = onlineUsersResult.connectionIds;
 
-  let channelCountCache = {};
+  let channelCache = {};
 
   for (let i = 0; i < onlineConnectionIds.length; i++) {
     let socketId = onlineConnectionIds[i];
     let channelsForThisSocketId = channelsForSocketId(socketId);
-    let channelOnlineCounts = {};
+    let channelOnlineCounts = {}; // don't need this anymore, just for backwards compat
+    let channelOnlineUserIds = {};
 
     for (let j = 0; j < channelsForThisSocketId.length; j++) {
       let channel = channelsForThisSocketId[j];
-      if (!channelCountCache[channel]) {
-        channelCountCache[channel] = onlineCountForChannel(channel);
+      if (!channelCache[channel]) {
+        channelCache[channel] = onlineUserIdsForChannel(channel);
       }
 
-      channelOnlineCounts[channel] = channelCountCache[channel];
+      channelOnlineCounts[channel] = channelCache[channel].length;
+      channelOnlineUserIds[channel] = channelCache[channel];
     }
 
     io.to(`${socketId}`).emit('presence', {
       type: 'full-update',
       user_ids: onlineUserIds,
       channel_online_counts: channelOnlineCounts,
+      channel_online_user_ids: channelOnlineUserIds,
     });
   }
 }
