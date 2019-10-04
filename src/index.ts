@@ -136,13 +136,27 @@ app.post('/get-presence', (req, res) => {
       throw new Error('no user id');
     }
 
-    let isOnline =
-      _.includes(_.values(connections), `${req.body.userId}`) ||
-      _.includes(_.values(connections), parseInt(req.body.userId));
+    let isOnline = false;
+    let channels = {};
+
+    for (var socketId in connections) {
+      if (
+        connections[socketId] === `${req.body.userId}` ||
+        connections[socketId] === parseInt(req.body.userId)
+      ) {
+        isOnline = true;
+
+        let socketChannels = channelsForSocketId(socketId);
+        for (let i = 0; i < socketChannels.length; i++) {
+          channels[socketChannels[i]] = true;
+        }
+      }
+    }
 
     res.setHeader('content-type', 'application/json');
     res.status(200).send({
       status: isOnline ? 'online' : 'offline',
+      channels: _.keys(channels),
     });
   } catch (e) {
     console.log(e);
