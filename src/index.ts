@@ -58,6 +58,39 @@ app.post('/send-message', (req, res) => {
   }
 });
 
+app.post('/send-user-update', (req, res) => {
+  try {
+    if (req.body.secretKey !== secret.chat.secretKey) {
+      throw new Error('incorrect secret key');
+    }
+
+    if (!req.body.userId) {
+      throw new Error('no userId');
+    }
+
+    if (!req.body.type) {
+      throw new Error('no type');
+    }
+
+    if (!req.body.body) {
+      throw new Error('no body');
+    }
+
+    io.to(`user-id:${req.body.userId}`).emit(
+      'update',
+      JSON.stringify({
+        type: req.body.type,
+        body: req.body.body,
+      })
+    );
+
+    res.status(200).send('success');
+  } catch (e) {
+    console.log(e);
+    res.status(401).send('failure ' + e.toString());
+  }
+});
+
 app.post('/send-global-update', (req, res) => {
   try {
     if (req.body.secretKey !== secret.chat.secretKey) {
@@ -79,6 +112,8 @@ app.post('/send-global-update', (req, res) => {
         body: req.body.body,
       })
     );
+
+    // TODO: send to new clients
 
     res.status(200).send('success');
   } catch (e) {
