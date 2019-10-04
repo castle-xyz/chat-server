@@ -23,6 +23,8 @@ var httpServer = new http.Server(app);
 var io = socketio(httpServer);
 var port = process.env.PORT || 3003;
 
+let stickyGlobalUpdateCache = {};
+
 app.get('/', function(req, res) {
   res.status(200).send('woop');
 });
@@ -105,15 +107,17 @@ app.post('/send-global-update', (req, res) => {
       throw new Error('no body');
     }
 
-    io.emit(
-      'update',
-      JSON.stringify({
-        type: req.body.type,
-        body: req.body.body,
-      })
-    );
+    let payload = JSON.stringify({
+      type: req.body.type,
+      body: req.body.body,
+    });
 
-    // TODO: send to new clients
+    io.emit('update', payload);
+
+    let options = req.body.options || {};
+    if (options.isSticky) {
+      stickyGlobalUpdateCache[req.body.type] = payload;
+    }
 
     res.status(200).send('success');
   } catch (e) {
@@ -334,6 +338,10 @@ io.on('connection', async (socket) => {
 
   connections[socket.id] = userId;
   sendPresenceEvent();
+
+  _.map(_.values(stickyGlobalUpdateCache), (payload) => {
+    io.to(socket.id).emit('update', payload);
+  });
 
   socket.on('disconnect', () => {
     let subscribedChannels = channelsForSocketId(socket.id);
